@@ -1,5 +1,32 @@
 # yum docker cookbook
-docker烹饪书、docker命令详解
+docker烹饪书、docker命令详解  
+
+**目录**
+- [查看版本](#查看版本)
+- [查看参数](#查看参数)
+- [查看帮助](#查看帮助)
+- [查看特定命令帮助](#查看特定命令帮助)
+- [命令格式](#命令格式)
+- [hello docker](#hello-docker)
+- [查看运行的容器列表](#查看运行的容器列表)
+- [停止容器运行](#停止容器运行)
+- [指定容器名字](#指定容器名字)
+- [查看日志](#查看日志)
+- [删除容器](#删除容器)
+- [docker container run命令详解](#docker-container-run命令详解)
+- [查看容器中的进程](#查看容器中的进程)
+- [容器和虚拟机的区别](#容器和虚拟机的区别)
+- [docker create/start/run区别](#docker-createstartrun区别)
+- [查看容器元数据](#查看容器元数据)
+- [设置环境变量](#设置环境变量)
+- [查看所有容器运行状态](#查看所有容器运行状态)
+- [运行容器的同时启动bash](#运行容器的同时启动bash)
+- [在容器中运行ubuntu](#在容器中运行ubuntu)
+- [在启动的容器中执行命令](#在启动的容器中执行命令)
+- [将image拉到本地](#将image拉到本地)
+- [查看image列表](#查看image列表)
+- [在容器中中运行alpine](#在容器中中运行alpine)
+- [进入容器的方法总结](#进入容器的方法总结)
 
 ## 查看版本
 `docker version`命令可以检查docker版本:
@@ -209,7 +236,7 @@ ce47f01488e8        nginx               "nginx -g 'daemon of…"   14 minutes ag
 shiming@pro ➜  ~ docker container rm -f ce4
 ce4
 ```
-## docker container run命令背后
+## docker container run命令详解
 1. 在本地image缓存中搜索这个image，如果找不到
 2. 在远程image库寻找（默认是Docker Hub）
 3. 默认下载最新版image(nginx:latest), 但是如果指定了版本则下载指定版本
@@ -370,7 +397,7 @@ shiming@pro ➜  ~ docker container start -ai ubuntu   # 用交互模式start容
 root@384472f0ecc1:/#
 ```
 
-## 容器启动后执行命令
+## 在启动的容器中执行命令
 `docker exec`的作用是Run a command in a running container即在运行中的容器中执行命令，`docker exec -it <container> <command>`即可以交互式执行command，比如bash：  
 ``` zsh
 shiming@pro ➜  ~ docker exec -it ubuntu bash
@@ -416,7 +443,7 @@ alpine              latest              caf27325b298        4 weeks ago         
 eosio/eos           v1.4.2              9e4bb39a8e25        4 months ago        250MB
 ```
 
-## docker中运行alpine
+## 在容器中中运行alpine
 alpine太精简了，连bash都没有，只有`sh`所以不能用`docker container run -it alpine bash`运行  
 ``` zsh
 shiming@pro ➜  ~ docker container run -it alpine sh
@@ -447,5 +474,8 @@ bash-4.4#
 * `docker container exec -it`  在已启动的容器中执行额外的命令
 
 ## 
+
+
+
 
 
