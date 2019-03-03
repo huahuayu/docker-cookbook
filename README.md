@@ -1,4 +1,4 @@
-# yum docker cookbook
+# yum docker cookbook <working in progress>
 docker烹饪书、docker命令详解  
 
 **目录**
@@ -8,12 +8,14 @@ docker烹饪书、docker命令详解
 - [查看特定命令帮助](#查看特定命令帮助)
 - [命令格式](#命令格式)
 - [hello docker](#hello-docker)
+- [docker命令自动补全](#docker命令行自动补全)
 - [查看运行的容器列表](#查看运行的容器列表)
 - [停止容器运行](#停止容器运行)
 - [指定容器名字](#指定容器名字)
+- [给容器重命名](#给容器重命名)
 - [查看日志](#查看日志)
 - [删除容器](#删除容器)
-- [docker container run命令详解](#docker-container-run命令详解)
+- [docker run命令详解](#docker-run命令详解)
 - [查看容器中的进程](#查看容器中的进程)
 - [容器和虚拟机的区别](#容器和虚拟机的区别)
 - [docker create/start/run区别](#docker-createstartrun区别)
@@ -27,6 +29,17 @@ docker烹饪书、docker命令详解
 - [查看image列表](#查看image列表)
 - [在容器中中运行alpine](#在容器中中运行alpine)
 - [进入容器的方法总结](#进入容器的方法总结)
+- [查看容器端口](#查看容器端口)
+- [查看容器的ip地址](#查看容器的ip地址)
+- [容器网络](#容器网络)
+- [查看网络列表](#查看网络列表)
+- [默认网络](#默认网络)
+- [查看网络详情](#查看网络详情)
+- [新建网络](#新建网络)
+- [指定容器网络](#指定容器网络)
+- [容器链接网络](#容器链接网络)
+- [断开网络](#断开网络)
+- [教程推荐](#教程推荐)
 
 ## 查看版本
 `docker version`命令可以检查docker版本:
@@ -155,6 +168,26 @@ b46fee7c3a8434d1ba6e7bb9b1e5f3161188319a981f117c99cf6698eb1db29b
 ```
 返回的是唯一的container id
 
+命令中`--publish 80:80`的作用就是将容器的80端口映射到宿主端口80上，简写为`-p`，格式为：主机(宿主)端口:容器端口  
+
+## docker命令自动补全
+安装docker后默认是没有docker相关命令行自动补全的，需要自己安装，可以参考[官方说明](https://docs.docker.com/compose/completion/)
+以zsh为例，如果使用的是oh-my-zsh配置，则只需要在~/.zshrc开启插件：
+``` vim
+plugins=(... docker docker-compose
+)
+```
+
+然后使用`source ~/.zshrc`使配置生效即可
+
+自动补全效果举例：
+敲"docker con" + tab键，出现提示
+``` zsh
+shiming@pro ➜  ~ docker con
+config     -- Manage Docker configs
+container  -- Manage containers
+```
+
 ## 查看运行的容器列表
 `docker container ls` 或 `docker ps`
 ``` zsh
@@ -191,13 +224,31 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ```
 
 ## 指定容器名字
-容器的名字不指定的时候是自动生成的，但是可以用`--name`指定  
+容器的名字不指定的时候是自动生成的，但是可以在`docker run`的时候用`--name`指定  
 ``` zsh
 shiming@pro ➜  ~ docker container run --publish 80:80 --detach --name webhost nginx
 ce47f01488e85bad69357c1c3a26bb05bdbad8a63ac4ae314c3b4892c3792368
 shiming@pro ➜  ~ docker ps
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
 ce47f01488e8        nginx               "nginx -g 'daemon of…"   10 seconds ago      Up 10 seconds       0.0.0.0:80->80/tcp   webhost
+```
+
+## 给容器重命名
+如果`docker run`的时候没有为容器命名，容器会得到一个随机名字，后续可以通过`docker container reanme <old_name> <new_name>`来给容器重命名(简写`docker rename <old_name> <new_name>`)
+
+容器的随机名字为infallible_saha:
+``` zsh
+shiming@pro ➜  ~ docker container ls -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                  PORTS                NAMES
+b3c2b3a65b95        alpine              "sh"                     2 days ago          Exited (0) 2 days ago                        infallible_saha
+```
+
+通过`rename`修改名字为alpine：
+``` zsh
+shiming@pro ➜  ~ docker container rename infallible_saha alpine
+shiming@pro ➜  ~ docker container ls -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                  PORTS                NAMES
+b3c2b3a65b95        alpine              "sh"                     2 days ago          Exited (0) 2 days ago                        alpine
 ```
 
 ## 查看日志
@@ -236,7 +287,7 @@ ce47f01488e8        nginx               "nginx -g 'daemon of…"   14 minutes ag
 shiming@pro ➜  ~ docker container rm -f ce4
 ce4
 ```
-## docker container run命令详解
+## docker run命令详解
 1. 在本地image缓存中搜索这个image，如果找不到
 2. 在远程image库寻找（默认是Docker Hub）
 3. 默认下载最新版image(nginx:latest), 但是如果指定了版本则下载指定版本
@@ -473,9 +524,405 @@ bash-4.4#
 * `docker container start -at` 启动已exit的容器
 * `docker container exec -it`  在已启动的容器中执行额外的命令
 
-## 
+## 查看容器端口
+怎么查看在运行的容器使用的端口以及宿主主机的映射端口？  
+`docker ps`可以查看, PORTS这栏就是端口情况，左边是主机的端口，右边是容器的端口，箭头代表流量转发，tcp是使用的传输协议  
+``` zsh
+shiming@pro ➜  ~ docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
+cbecc2967e2e        nginx               "nginx -g 'daemon of…"   2 days ago          Up 14 hours         0.0.0.0:80->80/tcp   webhost
+```
+
+另外一种方法是`docker container port <container>`，可以直接查看 
+``` zsh
+shiming@pro ➜  ~ docker container port webhost
+80/tcp -> 0.0.0.0:80
+```
+
+## 查看容器的ip地址
+[上面](#查看容器端口)介绍了如何查看容器的端口，那么如何查看容器的ip地址呢？有两种方法：
+
+第一种：使用`inspect` + `--format`参数来直接获取元数据json的IPAddress字段
+``` zsh
+shiming@pro ➜  ~ docker container inspect --format '{{.NetworkSettings.IPAddress}}' webhost
+172.17.0.2
+```
+
+第二种：使用grep查找，查找结果会有些不精确，但是也可以看出来
+``` zsh
+shiming@pro ➜  ~ docker container inspect webhost | grep IPAddress
+            "SecondaryIPAddresses": null,
+            "IPAddress": "172.17.0.2",
+                    "IPAddress": "172.17.0.2",
+```
+
+## 容器网络
+在上一节[查看容器的ip地址](#查看容器的ip地址)可以看到容器的ip地址为172.17.0.2，而宿主的ip可以通过`ifconfig en0`查看，为192.168.199.171，不在一个网段上，因为容器的网络实际上是另一个虚拟网络。
+
+``` zsh
+shiming@pro ➜  ~ ifconfig en0
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether f0:18:98:5e:fc:ae
+	inet6 fe80::1481:8049:6101:16aa%en0 prefixlen 64 secured scopeid 0xa
+	inet 192.168.199.171 netmask 0xffffff00 broadcast 192.168.199.255
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+```
+
+为了使容器通过主机相互通信以及与外界进行通信，必须涉及一个网络层。 Docker支持不同类型的网络，每种网络都适合某些场景。
+
+使用同一个虚拟网络的两个容器可以相互通信，无需对外暴露端口（如图），不同虚拟网络的容器要借助宿主主机相互通信。
+![](https://raw.githubusercontent.com/huahuayu/img/master/20190303001649.png)
+
+## 查看网络列表
+`docker network ls`可以查看容器的网络列表：
+``` zsh
+shiming@pro ➜  ~ docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+dbfad6703d34        bridge              bridge              local
+be8589833b5d        host                host                local
+2ae02f9d17f7        none                null                local
+```
+其中第一个name为bridge的是默认的容器网络
+
+其他的容器网络相关命令如下：
+``` zsh
+shiming@pro ➜  ~ docker network --help
+
+Usage:	docker network COMMAND
+
+Manage networks
+
+Commands:
+  connect     Connect a container to a network
+  create      Create a network
+  disconnect  Disconnect a container from a network
+  inspect     Display detailed information on one or more networks
+  ls          List networks
+  prune       Remove all unused networks
+  rm          Remove one or more networks
+```
+## 默认网络
+在docker安装后，默认的网络`bridge`(docker0)就被创建了，新建的容器默认都位于这个网络中，除非另行指定。除了bridge，另外其他两个网络也被创建了，一个叫`host`，一个叫`none`。
+
+host网络和宿主网络相同，他们之间没有任何隔离，提高了网络性能，但是有一定的安全隐患；none网络中，容器只能访问localhost。
 
 
 
+## 查看网络详情
+`docker network inspect <network>`可以查看网络详情:
+``` zsh
+shiming@pro ➜  ~ docker network inspect bridge
+[
+    {
+        "Name": "bridge",
+        "Id": "dbfad6703d342033f44ed5bff69b2a39fc1a097b01b837cab2491b2c66077b44",
+        "Created": "2019-02-28T07:39:08.181791852Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "918a8cf31d1f9f0343d24c8c42119dca9c2db8b1b182791cffcb45286e9c321d": {
+                "Name": "mongo",
+                "EndpointID": "3cc3d215ea9cd268d278ac39699919f89b2a8ec3595b592727263ee7eb836e3c",
+                "MacAddress": "02:42:ac:11:00:03",
+                "IPv4Address": "172.17.0.3/16",
+                "IPv6Address": ""
+            },
+            "b3c2b3a65b95c9b2e89f1f4ca10f4f4cf6e39eecef3e2a839e5c6e6b18faa4d6": {
+                "Name": "alpine",
+                "EndpointID": "49e3dde817273ece30c45c21df0c1f9d181879f61f5c4efb35c5083c4d1fdf54",
+                "MacAddress": "02:42:ac:11:00:04",
+                "IPv4Address": "172.17.0.4/16",
+                "IPv6Address": ""
+            },
+            "cbecc2967e2ee730457e09144a16ba5295b55980c6cc2d81c72dbe3f2ae7105e": {
+                "Name": "webhost",
+                "EndpointID": "4f6154cc1678cbc78f1788f9814ef9b55181ad6712e4aea0492843e93c522bf5",
+                "MacAddress": "02:42:ac:11:00:02",
+                "IPv4Address": "172.17.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+```
+在Containers数组中可以看到，mongo、alpine、webhost都运行在这个默认网络上，印证了在[默认网络](#默认网络)中提到的。
+
+## 新建网络
+`docker network create <network_name>`可以新建自定义网络
+``` zsh
+shiming@pro ➜  ~ docker network create my_app_net
+e2b8dcbe4827b3e4c011c8e9f5f2298611cbff328948cede94d5cbb7a76729cf
+shiming@pro ➜  ~ docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+dbfad6703d34        bridge              bridge              local
+be8589833b5d        host                host                local
+e2b8dcbe4827        my_app_net          bridge              local
+2ae02f9d17f7        none                null                local
+```
+
+以上新建了一个网络叫my_app_net，网络驱动（driver）默认为bridge，网络驱动是内置的或者第三方的，能提供虚拟网络服务的程序。
+
+新建网络其实还有很多的选项可以使用
+``` zsh
+shiming@pro ➜  ~ docker network create --help
+
+Usage:	docker network create [OPTIONS] NETWORK
+
+Create a network
+
+Options:
+      --attachable           Enable manual container attachment
+      --aux-address map      Auxiliary IPv4 or IPv6 addresses used by Network driver (default map[])
+      --config-from string   The network from which copying the configuration
+      --config-only          Create a configuration only network
+  -d, --driver string        Driver to manage the Network (default "bridge")
+      --gateway strings      IPv4 or IPv6 Gateway for the master subnet
+      --ingress              Create swarm routing-mesh network
+      --internal             Restrict external access to the network
+      --ip-range strings     Allocate container ip from a sub-range
+      --ipam-driver string   IP Address Management Driver (default "default")
+      --ipam-opt map         Set IPAM driver specific options (default map[])
+      --ipv6                 Enable IPv6 networking
+      --label list           Set metadata on a network
+  -o, --opt map              Set driver specific options (default map[])
+      --scope string         Control the network's scope
+      --subnet strings       Subnet in CIDR format that represents a network segment
+```
+
+## 指定容器网络
+`docker run --network <network_name> <image_name>`可以指定容器运行在特定的网络上
+``` zsh
+shiming@pro ➜  ~ docker container run -d --name new_nginx --network my_app_net nginx
+1de774242804433c78cadf58083f2432b0f05b49850682d2ce91fc18ce4761b6
+```
+
+检查my_app_net网络，Containers栏位中有new_nginx成功运行了
+``` zsh
+shiming@pro ➜  ~ docker network inspect my_app_net
+[
+    {
+        "Name": "my_app_net",
+        "Id": "e2b8dcbe4827b3e4c011c8e9f5f2298611cbff328948cede94d5cbb7a76729cf",
+        "Created": "2019-03-03T14:12:14.9603493Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "1de774242804433c78cadf58083f2432b0f05b49850682d2ce91fc18ce4761b6": {
+                "Name": "new_nginx",
+                "EndpointID": "c7925a18b2036885d908f1ce32f9e74165f7ecdc6cfc123379f1cc7863efbefb",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+```
+## 容器链接网络
+`docker network connect <network> <container>`可以将容器链接到指定网络。
+
+输入`docker network connect` 然后按tab键会出现输入建议，按多次tab可以选择（如果不会出现输入建议请参考[docker命令自动补全](#docker命令行自动补全)）
+``` zsh
+shiming@pro ➜  ~ docker network connect e2b8dcbe4827
+2ae02f9d17f7  none                              --    null, local
+be8589833b5d  host                              --    host, local
+e2b8dcbe4827  dbfad6703d34  my_app_net  bridge  --  bridge, local
+```
+
+将webhost容器连接上my_app_net
+``` zsh
+shiming@pro ➜  ~ docker network connect my_app_net webhost
+```
+
+查看webhost容器，Networks中有了两个网络了：bridge和my_app_net
+``` zsh
+shiming@pro ➜  ~ docker container inspect webhost
+[
+    {
+            ...
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "dbfad6703d342033f44ed5bff69b2a39fc1a097b01b837cab2491b2c66077b44",
+                    "EndpointID": "4f6154cc1678cbc78f1788f9814ef9b55181ad6712e4aea0492843e93c522bf5",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:02",
+                    "DriverOpts": null
+                },
+                "my_app_net": {
+                    "IPAMConfig": {},
+                    "Links": null,
+                    "Aliases": [
+                        "cbecc2967e2e"
+                    ],
+                    "NetworkID": "e2b8dcbe4827b3e4c011c8e9f5f2298611cbff328948cede94d5cbb7a76729cf",
+                    "EndpointID": "c0d901d89e15870be9ef28efc50cfa31d1fb8c354410e2f8983dcac919b47904",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:03",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]
+```
+
+相应的，检查my_app_net也可以看到多了一个webhost容器
+``` zsh
+shiming@pro ➜  ~ docker network inspect my_app_net
+[
+    {
+        "Name": "my_app_net",
+        "Id": "e2b8dcbe4827b3e4c011c8e9f5f2298611cbff328948cede94d5cbb7a76729cf",
+        "Created": "2019-03-03T14:12:14.9603493Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "1de774242804433c78cadf58083f2432b0f05b49850682d2ce91fc18ce4761b6": {
+                "Name": "new_nginx",
+                "EndpointID": "c7925a18b2036885d908f1ce32f9e74165f7ecdc6cfc123379f1cc7863efbefb",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "cbecc2967e2ee730457e09144a16ba5295b55980c6cc2d81c72dbe3f2ae7105e": {
+                "Name": "webhost",
+                "EndpointID": "c0d901d89e15870be9ef28efc50cfa31d1fb8c354410e2f8983dcac919b47904",
+                "MacAddress": "02:42:ac:12:00:03",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+```
+
+## 断开网络
+`docker network disconnect <network_name> <container_name>`可以将容器从指定网络断开
+``` zsh
+shiming@pro ➜  ~ docker network disconnect my_app_net webhost
+shiming@pro ➜  ~ docker network inspect my_app_net
+[
+    {
+        "Name": "my_app_net",
+        "Id": "e2b8dcbe4827b3e4c011c8e9f5f2298611cbff328948cede94d5cbb7a76729cf",
+        "Created": "2019-03-03T14:12:14.9603493Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "1de774242804433c78cadf58083f2432b0f05b49850682d2ce91fc18ce4761b6": {
+                "Name": "new_nginx",
+                "EndpointID": "c7925a18b2036885d908f1ce32f9e74165f7ecdc6cfc123379f1cc7863efbefb",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+```
 
 
+## 教程推荐
+- [docker 101](https://www.aquasec.com/wiki/display/containers/Docker+Containers)
