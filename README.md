@@ -9,7 +9,7 @@ docker烹饪书、docker命令详解
 - [查看特定命令帮助](#查看特定命令帮助)
 - [命令格式](#命令格式)
 - [hello docker](#hello-docker)
-- [docker命令自动补全](#docker命令行自动补全)
+- [docker命令自动补全](#docker命令自动补全)
 - [查看运行的容器列表](#查看运行的容器列表)
 - [停止容器运行](#停止容器运行)
 - [指定容器名字](#指定容器名字)
@@ -46,7 +46,7 @@ docker烹饪书、docker命令详解
 ### mac版本
 直接去官方下载dmg安装文件 https://hub.docker.com/editions/community/docker-ce-desktop-mac，下载前会要求你注册一个docker.com的账号
 ### ubuntu版本
-ubuntu安装docker[官方指引](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)：
+ubuntu安装docker[官方指引](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)：  
 第一步：将docker添加到apt-get库
 ``` bash
 sudo apt-get update
