@@ -2,6 +2,7 @@
 docker烹饪书、docker命令详解  
 
 **目录**
+- [安装docker](#安装docker)
 - [查看版本](#查看版本)
 - [查看参数](#查看参数)
 - [查看帮助](#查看帮助)
@@ -40,6 +41,61 @@ docker烹饪书、docker命令详解
 - [容器链接网络](#容器链接网络)
 - [断开网络](#断开网络)
 - [教程推荐](#教程推荐)
+
+## 安装docker
+### mac版本
+直接去官方下载dmg安装文件 https://hub.docker.com/editions/community/docker-ce-desktop-mac，下载前会要求你注册一个docker.com的账号
+### ubuntu版本
+ubuntu安装docker[官方指引](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)：
+第一步：将docker添加到apt-get库
+``` bash
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+```
+
+第二步：安装docker ce
+``` bash
+sudo apt-get update
+sudo apt-get install docker-ce
+```
+
+第三步：验证安装
+``` bash
+sudo docker run hello-world
+```
+
+如果出现以下返回则安装成功，这个输出还简单解释了docker的工作原理：
+```
+root@MNG-BC ➜  ~ docker run hello-world
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+1b930d010525: Pull complete
+Digest: sha256:2557e3c07ed1e38f26e389462d03ed943586f744621577a99efb77324b0fe535
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+```
 
 ## 查看版本
 `docker version`命令可以检查docker版本:
@@ -922,6 +978,46 @@ shiming@pro ➜  ~ docker network inspect my_app_net
     }
 ]
 ```
+
+## 网络安全
+容器依赖主机进行网络连接，只和主机进行网络交互
+容器默认不对外暴露，除非显示的使用`-p`对主机发布
+前端程序可以和后端程序放在同一个网络中
+
+
+## 容器发现（DNS）
+容器间的通讯不应该依赖ip地址，特别是在生产系统上，因为容器的创建和删除是动态的ip地址并不可靠。应该依赖容器的名字或id，这就涉及到DNS。同一个虚拟网络中的容器是可以相互发现的。
+
+进入容器bash并安装ping命令
+``` zsh
+shiming@pro ➜  ~ docker container exec -it new_nginx bash
+root@1de774242804:/# apt-get update
+root@1de774242804:/# apt-get install iputils-ping
+```
+
+从容器内部ping同网络的另一个容器，发现可以ping通
+``` zsh
+root@1de774242804:/# ping webhost
+PING webhost (172.18.0.3) 56(84) bytes of data.
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=1 ttl=64 time=5.28 ms
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=2 ttl=64 time=0.190 ms
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=3 ttl=64 time=0.195 ms
+```
+
+这样ping也可以
+``` zsh
+shiming@pro ➜  ~ docker container exec new_nginx ping webhost
+PING webhost (172.18.0.3) 56(84) bytes of data.
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=1 ttl=64 time=0.715 ms
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=2 ttl=64 time=0.326 ms
+64 bytes from webhost.my_app_net (172.18.0.3): icmp_seq=3 ttl=64 time=0.195 ms
+```
+
+附加学习：
+[DNS: Why It’s Important and How It Works](https://dyn.com/blog/dns-why-its-important-how-it-works/)
+
+
+## 
 
 
 ## 教程推荐
