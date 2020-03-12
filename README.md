@@ -1,47 +1,9 @@
-# yum docker cookbook <working in progress>
-docker烹饪书、docker命令详解  
-
-**目录**
-- [安装docker](#安装docker)
-- [查看版本](#查看版本)
-- [查看参数](#查看参数)
-- [查看帮助](#查看帮助)
-- [查看特定命令帮助](#查看特定命令帮助)
-- [命令格式](#命令格式)
-- [hello docker](#hello-docker)
-- [docker命令自动补全](#docker命令自动补全)
-- [查看运行的容器列表](#查看运行的容器列表)
-- [停止容器运行](#停止容器运行)
-- [指定容器名字](#指定容器名字)
-- [给容器重命名](#给容器重命名)
-- [查看日志](#查看日志)
-- [删除容器](#删除容器)
-- [docker run命令详解](#docker-run命令详解)
-- [查看容器中的进程](#查看容器中的进程)
-- [容器和虚拟机的区别](#容器和虚拟机的区别)
-- [docker create/start/run区别](#docker-createstartrun区别)
-- [查看容器元数据](#查看容器元数据)
-- [设置环境变量](#设置环境变量)
-- [查看所有容器运行状态](#查看所有容器运行状态)
-- [运行容器的同时启动bash](#运行容器的同时启动bash)
-- [在容器中运行ubuntu](#在容器中运行ubuntu)
-- [在启动的容器中执行命令](#在启动的容器中执行命令)
-- [将image拉到本地](#将image拉到本地)
-- [查看image列表](#查看image列表)
-- [在容器中中运行alpine](#在容器中中运行alpine)
-- [进入容器的方法总结](#进入容器的方法总结)
-- [查看容器端口](#查看容器端口)
-- [查看容器的ip地址](#查看容器的ip地址)
-- [容器网络](#容器网络)
-- [查看网络列表](#查看网络列表)
-- [默认网络](#默认网络)
-- [查看网络详情](#查看网络详情)
-- [新建网络](#新建网络)
-- [指定容器网络](#指定容器网络)
-- [容器链接网络](#容器链接网络)
-- [断开网络](#断开网络)
-- [教程推荐](#教程推荐)
-
+[//title]:(docker-cookbook)
+[//englishTitle]:(docker-cookbook)
+[//category]:(docker,tutorial)
+[//tags]:(docker)
+[//createTime]:(20190301)
+[//lastUpdateTime]:(20200312)
 ## 安装docker
 ### mac版本
 直接去官方下载dmg安装文件 https://hub.docker.com/editions/community/docker-ce-desktop-mac，下载前会要求你注册一个docker.com的账号
@@ -269,6 +231,7 @@ b46fee7c3a84        nginx               "nginx -g 'daemon of…"   About an hour
 ## 停止容器运行
 `docker container stop <container>`
 只需要敲几个首字母能区分container即可，stop后再用`docker container ls`来看，进程已经没有了
+
 ``` zsh
 shiming@pro ➜  ~ docker ps
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
@@ -278,6 +241,7 @@ b46
 shiming@pro ➜  ~ docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
+
 
 ## 指定容器名字
 容器的名字不指定的时候是自动生成的，但是可以在`docker run`的时候用`--name`指定  
@@ -419,11 +383,16 @@ shiming@pro ➜  ~ docker container inspect mongo
 ## 设置环境变量
 `-e`可以在容器运行时指定容器的环境变量，如以下命令即指定环境变量`MYSQL_RANDOM_ROOT_PASSWORD`为true：  
 ```
-docker container run -d --name mysql -e MYSQL_RANDOM_ROOT_PASSWORD=true -p 3307:3306 mysql
+docker container run -d --name mysql -e MYSQL_RANDOM_ROOT_PASSWORD=true -p 3307:3306 mysql   # 3307是主机端口，3306docker端口，将3306映射到主机3307
 ```
 
 如此指定之后mysql容器运行后，可以用`docker container logs mysql`查看生成的随机root密码  
-![](https://github.com/huahuayu/img/blob/master/20190302073127.png?raw=true)
+![](https://github.com/huahuayu/img/blob/master/20190302073127.png?raw=true)  
+
+也可以通过`MYSQL_ROOT_PASSWORD`直接指定mysql root密码  
+```
+docker container run -d --name mysql -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3307:3306 mysql   # 3307是主机端口，3306docker端口，将3306映射到主机3307
+```
 
 ## 查看所有容器运行状态
 `docker container stats`或`docker stats`可以查看所有容器实时运行情况  
@@ -536,6 +505,11 @@ Digest: sha256:b3dbf31b77fd99d9c08f780ce6f5282aba076d70a513a8be859d8d3a4d0c92b8
 Status: Downloaded newer image for alpine:latest
 ```
 
+建议拉取指定版本，而不是直接拉取latest版，latest是相对的  
+```
+docker pull sonarqube:6.7.6-community   #冒号后面就是版本号
+```
+
 
 ## 查看image列表
 `docker image ls`可以查看image大小
@@ -548,6 +522,176 @@ ubuntu              latest              47b19964fb50        3 weeks ago         
 mongo               latest              0da05d84b1fe        3 weeks ago         394MB
 alpine              latest              caf27325b298        4 weeks ago         5.53MB
 eosio/eos           v1.4.2              9e4bb39a8e25        4 months ago        250MB
+```
+
+## 查看image history
+`docker image history <image>`  可以查看image的创建历史，只有最上层的image layer有image id，底层layer不需要id。  
+```
+shiming@pro ➜  ~ docker image history nginx
+IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
+8c9ca4d17702        3 months ago        /bin/sh -c #(nop)  CMD ["nginx" "-g" "daemon…   0B
+<missing>           3 months ago        /bin/sh -c #(nop)  STOPSIGNAL SIGTERM           0B
+<missing>           3 months ago        /bin/sh -c #(nop)  EXPOSE 80                    0B
+<missing>           3 months ago        /bin/sh -c ln -sf /dev/stdout /var/log/nginx…   22B
+<missing>           3 months ago        /bin/sh -c set -x  && apt-get update  && apt…   54MB
+<missing>           3 months ago        /bin/sh -c #(nop)  ENV NJS_VERSION=1.15.9.0.…   0B
+<missing>           3 months ago        /bin/sh -c #(nop)  ENV NGINX_VERSION=1.15.9-…   0B
+<missing>           3 months ago        /bin/sh -c #(nop)  LABEL maintainer=NGINX Do…   0B
+<missing>           3 months ago        /bin/sh -c #(nop)  CMD ["bash"]                 0B
+<missing>           3 months ago        /bin/sh -c #(nop) ADD file:5a6d066ba71fb0a47…   55.3MB
+```
+## 查看image详细信息
+`docker image inspect <image>` 可以查看image的详细信息(元数据)  
+
+```
+shiming@pro ➜  ~ docker image inspect nginx
+[
+    {
+        "Id": "sha256:8c9ca4d17702c354fa41432be278d8ce6c0761b1302608034fa3ad49c6da43f9",
+        "RepoTags": [
+            "nginx:latest"
+        ],
+        "RepoDigests": [
+            "nginx@sha256:20bc75f3622d55ede8cd8fbbc808a4495c7a6f629293d96676f25eee709de5a7"
+        ],
+        "Parent": "",
+        "Comment": "",
+        "Created": "2019-02-27T23:24:03.506817648Z",
+        "Container": "2110c8a2d4615018cf5d614fde710c869b537340588e312552c92f3364be539d",
+        "ContainerConfig": {
+            "Hostname": "2110c8a2d461",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.15.9-1~stretch",
+                "NJS_VERSION=1.15.9.0.2.8-1~stretch"
+            ],
+            "Cmd": [
+                "/bin/sh",
+                "-c",
+                "#(nop) ",
+                "CMD [\"nginx\" \"-g\" \"daemon off;\"]"
+            ],
+            "ArgsEscaped": true,
+            "Image": "sha256:dc31fe1787f6c5a7c474c35abf044f0818b66a952901e4ee3cc19406b370bcf1",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+            },
+            "StopSignal": "SIGTERM"
+        },
+        "DockerVersion": "18.06.1-ce",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.15.9-1~stretch",
+                "NJS_VERSION=1.15.9.0.2.8-1~stretch"
+            ],
+            "Cmd": [
+                "nginx",
+                "-g",
+                "daemon off;"
+            ],
+            "ArgsEscaped": true,
+            "Image": "sha256:dc31fe1787f6c5a7c474c35abf044f0818b66a952901e4ee3cc19406b370bcf1",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+            },
+            "StopSignal": "SIGTERM"
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 109269900,
+        "VirtualSize": 109269900,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/1ca8abebad83c651db8de36664e0c08bea69a79c50ad2a6b82fd299741d23724/diff:/var/lib/docker/overlay2/56fc92713ecb4834f857835338ced9ad0a239866534b17969e5e03a0d6d17a99/diff",
+                "MergedDir": "/var/lib/docker/overlay2/05b6635d8cf9284cb2d453f1cd78addc5f6e37b390bccf0f18a54de958ea3add/merged",
+                "UpperDir": "/var/lib/docker/overlay2/05b6635d8cf9284cb2d453f1cd78addc5f6e37b390bccf0f18a54de958ea3add/diff",
+                "WorkDir": "/var/lib/docker/overlay2/05b6635d8cf9284cb2d453f1cd78addc5f6e37b390bccf0f18a54de958ea3add/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:0a07e81f5da36e4cd6c89d9bc3af643345e56bb2ed74cc8772e42ec0d393aee3",
+                "sha256:55028c39c191b1bbc24b2041f72bf66bbf9d5dccf1cf79be52b303e1bfdf9da7",
+                "sha256:0b9e07febf57e72a62e4746216a343af152e5a6c4ec0de0753ba28da01b711a6"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "0001-01-01T00:00:00Z"
+        }
+    }
+]
+```
+
+## 给image tag重命名
+`docker image tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]` 会新建一个image，以前的image不会被删除，是会新建一个image  
+```
+shiming@pro ➜  ~ docker image ls
+REPOSITORY                        TAG                 IMAGE ID            CREATED             SIZE
+jboss/jbpm-workbench-showcase     latest              ee46864cbe36        12 days ago         1GB
+jboss/jbpm-workbench              latest              84d668d97441        12 days ago         1GB
+debian                            latest              8d31923452f8        4 weeks ago         101MB
+shiming@pro ➜  ~ docker image ls
+REPOSITORY                        TAG                 IMAGE ID            CREATED             SIZE
+jboss/jbpm-workbench-showcase     latest              ee46864cbe36        12 days ago         1GB
+jboss/jbpm-workbench              latest              84d668d97441        12 days ago         1GB
+huahuayu/debian                   latest              8d31923452f8        4 weeks ago         101MB
+debian                            latest              8d31923452f8        4 weeks ago         101MB
+```
+
+## 登录docker hub
+`docker login`可以登录docker hub，登录了docker hub之后可以push image到自己的docker hub，相应的`docker logout`是登出  
+```
+shiming@pro ➜  ~ docker login
+Login with your Docker ID to push and pull images from Docker Hub. If you don't have a Docker ID, head over to https://hub.docker.com to create one.
+Username: huahuayu
+Password:
+Login Succeeded
+shiming@pro ➜  ~ docker logout
+Removing login credentials for https://index.docker.io/v1/
+```
+
+## docker push
+`docker push`和`git push`类似，可以将本地的image push到docker hub上（push前先用`docker login`登录）。push后可以在https://cloud.docker.com/repository/list查看push上来的image。  
+```
+shiming@pro ➜  ~ docker push huahuayu/alpine
+The push refers to repository [docker.io/huahuayu/alpine]
+503e53e365f3: Mounted from library/alpine
+latest: digest: sha256:25b4d910f4b76a63a3b45d0f69a57c34157500faf6087236581eca221c62d214 size: 528
 ```
 
 ## 在容器中中运行alpine
@@ -576,9 +720,15 @@ bash-4.4#
 
 ## 进入容器的方法总结
 
-* `docker container run -it`   交互式启动容器
-* `docker container start -at` 启动已exit的容器
-* `docker container exec -it`  在已启动的容器中执行额外的命令
+- `docker container run -it`   交互式启动容器
+- `docker container start -at` 启动已exit的容器
+- `docker exec -it <container> <command>` 在已启动的容器中执行额外的命令
+
+第三条最常用，如`docker exec -it 0b867efe19ae bash`
+
+## 查看容器的启动命令
+在容器内部可以用`ps -ef`查看，第1号进程就是    
+在容器外部可以用`docker inspect <container>`查看  
 
 ## 查看容器端口
 怎么查看在运行的容器使用的端口以及宿主主机的映射端口？  
@@ -596,7 +746,7 @@ shiming@pro ➜  ~ docker container port webhost
 ```
 
 ## 查看容器的ip地址
-[上面](#查看容器端口)介绍了如何查看容器的端口，那么如何查看容器的ip地址呢？有两种方法：
+上面介绍了如何查看容器的端口，那么如何查看容器的ip地址呢？有两种方法：
 
 第一种：使用`inspect` + `--format`参数来直接获取元数据json的IPAddress字段
 ``` zsh
@@ -613,7 +763,7 @@ shiming@pro ➜  ~ docker container inspect webhost | grep IPAddress
 ```
 
 ## 容器网络
-在上一节[查看容器的ip地址](#查看容器的ip地址)可以看到容器的ip地址为172.17.0.2，而宿主的ip可以通过`ifconfig en0`查看，为192.168.199.171，不在一个网段上，因为容器的网络实际上是另一个虚拟网络。
+在上一节【查看容器的ip地址】可以看到容器的ip地址为172.17.0.2，而宿主的ip可以通过`ifconfig en0`查看，为192.168.199.171，不在一个网段上，因为容器的网络实际上是另一个虚拟网络。
 
 ``` zsh
 shiming@pro ➜  ~ ifconfig en0
@@ -826,7 +976,7 @@ shiming@pro ➜  ~ docker network inspect my_app_net
 ## 容器链接网络
 `docker network connect <network> <container>`可以将容器链接到指定网络。
 
-输入`docker network connect` 然后按tab键会出现输入建议，按多次tab可以选择（如果不会出现输入建议请参考[docker命令自动补全](#docker命令行自动补全)）
+输入`docker network connect` 然后按tab键会出现输入建议，按多次tab可以选择（如果不会出现输入建议请参考本文【docker命令自动补全】章节）
 ``` zsh
 shiming@pro ➜  ~ docker network connect e2b8dcbe4827
 2ae02f9d17f7  none                              --    null, local
@@ -1017,8 +1167,39 @@ PING webhost (172.18.0.3) 56(84) bytes of data.
 [DNS: Why It’s Important and How It Works](https://dyn.com/blog/dns-why-its-important-how-it-works/)
 
 
-## 
+## docker file
+Step 1 : Create a file named Dockerfile
 
+Step 2 : Add instructions in Dockerfile
+
+Step 3 : Build dockerfile to create image
+
+Step 4 : Run image to create container
+
+
+
+COMMANDS
+: docker build 
+: docker build -t ImageName:Tag directoryOfDocekrfile
+
+: docker run image
+
+## 搜索image
+`docker search <image>`
+```
+root@df ➜  ~ docker search drools
+NAME                                      DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+jboss/drools-workbench-showcase           Drools Workbench Showcase                       67                                      [OK]
+jboss/drools-workbench                    Drools Workbench                                49                                      [OK]
+chtijbug/drools-platform-docker           Drools Platform Container                       2                                       [OK]
+......
+```
+
+## 常用软件
+### jenkins
+```
+docker run -p 8080:8080 -p 50000:50000 -d --name jenkins <jenkins_image_id>
+```
 
 ## 教程推荐
 - [docker 101](https://www.aquasec.com/wiki/display/containers/Docker+Containers)
